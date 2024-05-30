@@ -6,3 +6,46 @@ min_version("8.4.1")
 
 
 configfile: "config/config.yaml"
+
+rule covert_pgen:
+    input:
+        ws_path("pgen/impute_recoded_selected_sample_filter_hq_var_{chrom}.pgen"),
+        ws_path("pgen/impute_recoded_selected_sample_filter_hq_var_{chrom}.pvar"),
+        ws_path("pgen/impute_recoded_selected_sample_filter_hq_var_{chrom}.psam"),
+    output:
+        ws_path("output/plinkFormat/impute_recoded_selected_sample_filter_hq_var_chr{chrom}.bed"),
+        ws_path("output/plinkFormat/impute_recoded_selected_sample_filter_hq_var_chr{chrom}.bim"),
+        ws_path("output/plinkFormat/impute_recoded_selected_sample_filter_hq_var_chr{chrom}.fam")
+    container:
+        "docker://quay.io/biocontainers/plink2:2.00a5--h4ac6f70_0"
+    params:
+        pfile=ws_path("pgen/impute_recoded_selected_sample_filter_hq_var_{chrom}"),
+    shell:
+        """plink2 \
+--pfile {params.pfile} \
+--make-bed \
+--hard-call-threshold 0.01 \
+--out {output} \
+--memory 90000 'require'
+--threads 8
+"""
+
+rule ld:
+    input:
+        ws_path("output/plinkFormat/impute_recoded_selected_sample_filter_hq_var_chr{chrom}.bed"),
+        ws_path("output/plinkFormat/impute_recoded_selected_sample_filter_hq_var_chr{chrom}.bim"),
+        ws_path("output/plinkFormat/impute_recoded_selected_sample_filter_hq_var_chr{chrom}.fam"),
+    output:
+        ofile = ws_path("output/ld/ld_interval_chr{chrom}")
+    params:
+        ldsc_script="/scratch/giulia.pontali/ldsc/ldsc.py",
+        ld_wind_kb=1200.0,
+    shell:
+        """python2 {parmas.ldsc_script} \
+--bfile {input.bfile} \
+--l2 \
+--ld-window-kb {params.ld_window_kb}
+"""
+
+
+

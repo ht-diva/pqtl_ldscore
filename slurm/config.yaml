@@ -21,7 +21,11 @@ default-resources:
     threads: 1
     runtime: attempt * 5
 set-resources:
-    # for each rule set the resources that you need
-    snps_bonferroni_significant:
+    convert_pgen:
         mem_mb: 102400 + attempt * 2048
         threads: *cores
+    ld:
+        mem_mb: 102400 + attempt * 2048
+        threads: *cores
+
+

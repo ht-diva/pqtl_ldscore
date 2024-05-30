@@ -3,7 +3,4 @@ run:
 
 # paths
 workspace_path: 'results'
-sum_stat_path: '/exchange/healthds/pQTL/results/META_CHRIS_INTERVAL/qced_sumstats_digits/output'
-
-params:
-  bonferroni_threshold: 10.90069 
+path_pgen: '/exchange/healthds/pQTL/INTERVAL/Genetic_QC_files/pgen/'
