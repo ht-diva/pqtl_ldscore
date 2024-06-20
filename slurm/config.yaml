@@ -27,5 +27,17 @@ set-resources:
     compute_ld:
         mem_mb: 102400 + attempt * 2048
         threads: *cores
+    append_pvalue:
+        mem_mb: 102400 + attempt * 2048
+        threads: *cores
+    munge_sum_stat:
+        mem_mb: 102400 + attempt * 2048
+        threads: *cores
+    compute_ldscore:
+        mem_mb: 102400 + attempt * 2048
+        threads: *cores
+
+
+
 
 

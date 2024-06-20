@@ -18,6 +18,11 @@ rule all:
             ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"),
             seqid=analytes.seqid,
         )
+        expand(
+            ws_path("{seqid}/seq.{seqid}.munged.log"),
+            ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
+            seqid=analytes.seqid,
+        )
 
 rule compute_ld:
     input:
@@ -61,4 +66,55 @@ rule append_pvalue:
         """
         zcat {input} | \
         awk 'BEGIN{{OFS="\t"}} {{print $0, (NR==1 ? "P" : 10^-($13))}}' > {output}
+"""
+
+rule munge_sum_stat:
+    input:
+        ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"),
+    output:
+        ws_path("{seqid}/seq.{seqid}.munged"),
+    conda:
+        "envs/ldsc.yml"
+    resources:
+        runtime= lambda wc,attempt: attempt * 60,
+    shell:
+        """
+    munge_sumstats.py --sumstats {input} \
+    --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {output}
+    """
+
+rule compute_ldscore:
+    input:
+        ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
+        expand(
+            ws_path("ld/chr{chrom}.{ext}"),
+            chrom=[i for i in range(1,23)],
+            ext=[".l2.M", ".l2.M_5_50", ".l2.ldscore.gz", "log"]
+        )
+    output:
+        ws_path("{seqid}/seq.{seqid}_h2"),
+    conda:
+        "envs/ldsc.yml"
+    resources:
+        runtime= lambda wc,attempt: attempt * 60,
+    params:
+        munge=ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
+        ld=ws_path("ld/chr@"),
+    shell:
+        """
+        ldsc.py --h2 {input} --ref-ld-chr {params.ld} --w-ld-chr {params.ld} --out {output}
+    """
+
+rule merge_h2_info:
+    input:
+        ws_path("{seqid}/seq.{seqid}_h2.log"),
+    output:
+        ws_path("heritability_info.txt")
+    shell:
+    """
+    h2_line = $(grep "Total observed scale h2:" "{input}" | sed 's/.*Total Observed scale h2: //') \
+    lambda_gc_line =$(grep "Lambda GC:" {input} | sed 's/.*Lambda GC: //') \
+    mean_chi2_line =$(grep "Mean Chi\^2:" {input} | sed 's/.*Mean Chi\^2: //') \
+    intercept_line =$(grep "Intercept:" {input} | sed 's/.*Intercept: //') \
+    echo - e "$(basename {input})\t$h2_line\t$lambda_gc_line\t$mean_chi2_line\t$intercept_line" >> {output}
 """
