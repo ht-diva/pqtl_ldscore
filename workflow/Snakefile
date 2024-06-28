@@ -17,12 +17,13 @@ rule all:
         expand(
             ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"),
             seqid=analytes.seqid,
-        )
+        ),
         expand(
             ws_path("{seqid}/seq.{seqid}.munged.log"),
             ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
             seqid=analytes.seqid,
-        )
+        ),
+        ws_path("heritability_info.txt"),
 
 rule compute_ld:
     input:
@@ -111,7 +112,7 @@ rule merge_h2_info:
     output:
         ws_path("heritability_info.txt")
     shell:
-    """
+        """
     h2_line = $(grep "Total observed scale h2:" "{input}" | sed 's/.*Total Observed scale h2: //') \
     lambda_gc_line =$(grep "Lambda GC:" {input} | sed 's/.*Lambda GC: //') \
     mean_chi2_line =$(grep "Mean Chi\^2:" {input} | sed 's/.*Mean Chi\^2: //') \

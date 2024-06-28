@@ -36,6 +36,10 @@ set-resources:
     compute_ldscore:
         mem_mb: 102400 + attempt * 2048
         threads: *cores
+    merge_h2_info:
+        mem_mb: 102400 + attempt * 2048
+        threads: *cores
+
 
 
 
