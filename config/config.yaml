@@ -3,7 +3,7 @@ run:
 
 # paths
 workspace_path: 'results'
-path_bed: '/exchange/healthds/pQTL/INTERVAL/Genetic_QC_files/bed/qc_recoded_harmonised/'
+path_bed: '/scratch/giulia.pontali/genomics_QC_pipeline/results_scratch/bed/qc_recoded_harmonised'
 bed_template: 'impute_recoded_selected_sample_filter_hq_var_new_id_alleles_{chrom}.bed'
 bim_template: 'impute_recoded_selected_sample_filter_hq_var_new_id_alleles_{chrom}.bim'
 fam_template: 'impute_recoded_selected_sample_filter_hq_var_new_id_alleles_{chrom}.fam'
