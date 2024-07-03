@@ -1,4 +1,7 @@
 # Define input for the rules
+
+import pandas as pd
+
 data = []
 with open(config["path_seqids"], "r") as fp:
     lines = fp.readlines()
@@ -9,7 +12,7 @@ for line in lines:
     data.append((seqid, str(p)))
 
 analytes = (
-    pd.DataFrame.from_records(data, columns=["seqid", "sumstat_path"])
+    pd.DataFrame.from_records(data, columns=["seqid", "path_sumstats"])
     .set_index("seqid", drop=False)
     .sort_index()
 )
