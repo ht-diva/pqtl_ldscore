@@ -1,6 +1,5 @@
-# Define input for the rules
-
 import pandas as pd
+from pathlib import Path
 
 data = []
 with open(config["path_seqids"], "r") as fp:
@@ -17,18 +16,20 @@ analytes = (
     .sort_index()
 )
 
-def sumstats_path():
-    return str(Path(config.get("path_sumstats"),"{seqid}/seq.{seqid}.gwaslab.tsv.bgz"))
-
+def sumstats_path(wildcards):
+    return str(Path(config["path_sumstats"],
+                    f"{wildcards.seqid}/{wildcards.seqid}.gwaslab.tsv.bgz"))
 
 def ws_path(file_path):
-    return str(Path(config.get("workspace_path"), file_path))
+    return str(Path(config.get("workspace_path"))) + "/" + file_path
 
 def get_inputs():
-    inputs = [str(Path(config.get("path_bed"),Path(config.get("bed_template")))),
-              str(Path(config.get("path_bed"),Path(config.get("bim_template")))),
-              str(Path(config.get("path_bed"),Path(config.get("fam_template"))))]
+    inputs = [
+        str(Path(config.get("path_bed"), Path(config.get("bed_template")))),
+        str(Path(config.get("path_bed"), Path(config.get("bim_template")))),
+        str(Path(config.get("path_bed"), Path(config.get("fam_template"))))
+    ]
     return inputs
 
 def get_inputs_stem():
-    return str(Path(config.get("path_bed"),Path(config.get("bed_template"))).stem)
+    return str(Path(config.get("path_bed"), Path(config.get("bed_template"))).stem)
