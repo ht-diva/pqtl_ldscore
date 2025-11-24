@@ -10,44 +10,41 @@ include: "rules/common.smk"
 
 rule all:
     input:
-        expand(
-            ws_path("ld/chr{chrom}"),
-            chrom=[i for i in range(1,23)],
-        ),
-        expand(
-            ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"),
-            seqid=analytes.seqid,
-        ),
-        expand(
+        expand(ws_path("ld/chr{chrom}.l2.M"), chrom=range(1, 23)),
+        expand(ws_path("ld/chr{chrom}.l2.M_5_50"), chrom=range(1, 23)),
+        expand(ws_path("ld/chr{chrom}.l2.ldscore.gz"), chrom=range(1, 23)),
+        expand(ws_path("ld/chr{chrom}.log"), chrom=range(1, 23)),
+        expand(ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"), seqid=analytes.seqid),
+        expand([
             ws_path("{seqid}/seq.{seqid}.munged.log"),
-            ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
-            seqid=analytes.seqid,
-        ),
-        expand(
-            ws_path("{seqid}/seq.{seqid}_h2.log"),
-            seqid=analytes.seqid,
-        ),
-        ws_path("heritability_info.txt"),
+            ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz")
+        ], seqid=analytes.seqid),
+        expand(ws_path("{seqid}/seq.{seqid}_h2.log"), seqid=analytes.seqid),
+        ws_path("heritability_info.txt")
 
 rule compute_ld:
     input:
-        get_inputs()
+        get_inputs
     output:
-        ws_path("ld/chr{chrom}"),
+        ws_path("ld/chr{chrom}.l2.M"),
+        ws_path("ld/chr{chrom}.l2.M_5_50"),
+        ws_path("ld/chr{chrom}.l2.ldscore.gz"),
+        ws_path("ld/chr{chrom}.log"),
     params:
-        bfile = get_inputs_stem(),
-        ld_window = config.get('ldsc_dict').get('window')
+        bfile=get_inputs_stem,
+        ld_window=config["ldsc_dict"]["window"]
     conda:
         "envs/ldsc.yml"
     resources:
-        runtime= lambda wc,attempt: attempt * 60,
+        runtime=lambda wc, attempt: attempt * 60,
     shell:
         """
-    ldsc.py \
-    --out {output} \
-    --bfile {params.bfile} \
-    --l2 \
-    --ld-window-kb {params.ld_window} """
+        ldsc.py \
+        --out {wildcards.chrom} \
+        --bfile {params.bfile} \
+        --l2 \
+        --ld-window-kb {params.ld_window}
+        """
 
 # rule make_list:
 #     input:
@@ -64,29 +61,32 @@ rule compute_ld:
 
 rule append_pvalue:
     input:
-        sumstats_path(),
+        sumstats_path,
     output:
         ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv")
     shell:
         """
         zcat {input} | \
-        awk 'BEGIN{{OFS="\t"}} {{print $0, (NR==1 ? "P" : 10^-($13))}}' > {output}
-"""
+        awk 'BEGIN{{OFS="\t"}} {{print $0, (NR==1 ? "P" : 10^(-$13))}}' > {output}
+        """
+
 
 rule munge_sum_stat:
     input:
         ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"),
     output:
-        ws_path("{seqid}/seq.{seqid}.munged"),
+        ws_path("{seqid}/seq.{seqid}.munged.log"),
+        ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
     conda:
         "envs/ldsc.yml"
     resources:
-        runtime= lambda wc,attempt: attempt * 60,
+        runtime=lambda wc, attempt: attempt * 60,
     shell:
         """
-    munge_sumstats.py --sumstats {input} \
-    --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {output}
-    """
+        munge_sumstats.py --sumstats {input} \
+        --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {output[0]}
+        """
+
 
 rule compute_ldscore:
     input:
@@ -97,7 +97,7 @@ rule compute_ldscore:
             ext=[".l2.M", ".l2.M_5_50", ".l2.ldscore.gz", "log"]
         )
     output:
-        ws_path("{seqid}/seq.{seqid}_h2"),
+        ws_path("{seqid}/seq.{seqid}_h2.log"),
     conda:
         "envs/ldsc.yml"
     resources:
@@ -112,14 +112,17 @@ rule compute_ldscore:
 
 rule merge_h2_info:
     input:
-        ws_path("{seqid}/seq.{seqid}_h2.log"),
+        expand(ws_path("{seqid}/seq.{seqid}_h2.log"), seqid=analytes.seqid),
     output:
         ws_path("heritability_info.txt")
     shell:
         """
-    h2_line = $(grep "Total observed scale h2:" "{input}" | sed 's/.*Total Observed scale h2: //') \
-    lambda_gc_line =$(grep "Lambda GC:" {input} | sed 's/.*Lambda GC: //') \
-    mean_chi2_line =$(grep "Mean Chi\^2:" {input} | sed 's/.*Mean Chi\^2: //') \
-    intercept_line =$(grep "Intercept:" {input} | sed 's/.*Intercept: //') \
-    echo - e "$(basename {input})\t$h2_line\t$lambda_gc_line\t$mean_chi2_line\t$intercept_line" >> {output}
-"""
+        for f in {input}; do
+            h2_line=$(grep "Total observed scale h2:" "$f" | sed 's/.*Total Observed scale h2: //')
+            lambda_gc_line=$(grep "Lambda GC:" "$f" | sed 's/.*Lambda GC: //')
+            mean_chi2_line=$(grep "Mean Chi\\^2:" "$f" | sed 's/.*Mean Chi\\^2: //')
+            intercept_line=$(grep "Intercept:" "$f" | sed 's/.*Intercept: //')
+            echo -e "$(basename $f)\\t$h2_line\\t$lambda_gc_line\\t$mean_chi2_line\\t$intercept_line"
+        done > {output}
+        """
+        
