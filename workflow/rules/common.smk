@@ -23,13 +23,14 @@ def sumstats_path(wildcards):
 def ws_path(file_path):
     return str(Path(config.get("workspace_path"))) + "/" + file_path
 
-def get_inputs():
-    inputs = [
-        str(Path(config.get("path_bed"), Path(config.get("bed_template")))),
-        str(Path(config.get("path_bed"), Path(config.get("bim_template")))),
-        str(Path(config.get("path_bed"), Path(config.get("fam_template"))))
+def get_inputs(wildcards):
+    chrom = str(wildcards.chrom).strip(".")  # remove any stray dots
+    return [
+        str(Path(config["path_bed"], config["bed_template"].format(chrom=chrom))),
+        str(Path(config["path_bed"], config["bim_template"].format(chrom=chrom))),
+        str(Path(config["path_bed"], config["fam_template"].format(chrom=chrom))),
     ]
-    return inputs
 
-def get_inputs_stem():
-    return str(Path(config.get("path_bed"), Path(config.get("bed_template"))).stem)
+def get_inputs_stem(wildcards):
+    chrom = str(wildcards.chrom).strip(".")
+    return str(Path(config["path_bed"], config["bed_template"].format(chrom=chrom)).stem)
