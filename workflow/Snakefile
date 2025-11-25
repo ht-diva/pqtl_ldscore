@@ -14,12 +14,12 @@ rule all:
         expand(ws_path("ld/chr{chrom}.l2.M_5_50"), chrom=range(1, 23)),
         expand(ws_path("ld/chr{chrom}.l2.ldscore.gz"), chrom=range(1, 23)),
         expand(ws_path("ld/chr{chrom}.log"), chrom=range(1, 23)),
-        expand(ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"), seqid=analytes.seqid),
+        expand(ws_path("{seqid}/{seqid}.gwaslab.P.tsv"), seqid=analytes.seqid),
         expand([
-            ws_path("{seqid}/seq.{seqid}.munged.log"),
-            ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz")
+            ws_path("{seqid}/{seqid}.munged.log"),
+            ws_path("{seqid}/{seqid}.munged.sumstats.gz")
         ], seqid=analytes.seqid),
-        expand(ws_path("{seqid}/seq.{seqid}_h2.log"), seqid=analytes.seqid),
+        expand(ws_path("{seqid}/{seqid}_h2.log"), seqid=analytes.seqid),
         ws_path("heritability_info.txt")
 
 rule compute_ld:
@@ -43,7 +43,7 @@ rule compute_ld:
         --out {wildcards.chrom} \
         --bfile {params.bfile} \
         --l2 \
-        --ld-window-kb {params.ld_window}
+        --ld-wind-kb {params.ld_window}
         """
 
 # rule make_list:
@@ -63,7 +63,7 @@ rule append_pvalue:
     input:
         sumstats_path,
     output:
-        ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv")
+        ws_path("{seqid}/{seqid}.gwaslab.P.tsv")
     shell:
         """
         zcat {input} | \
@@ -73,10 +73,10 @@ rule append_pvalue:
 
 rule munge_sum_stat:
     input:
-        ws_path("{seqid}/seq.{seqid}.gwaslab.P.tsv"),
+        ws_path("{seqid}/{seqid}.gwaslab.P.tsv"),
     output:
-        ws_path("{seqid}/seq.{seqid}.munged.log"),
-        ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
+        ws_path("{seqid}/{seqid}.munged.log"),
+        ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
     conda:
         "envs/ldsc.yml"
     resources:
@@ -90,20 +90,20 @@ rule munge_sum_stat:
 
 rule compute_ldscore:
     input:
-        ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
+        ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
         expand(
             ws_path("ld/chr{chrom}.{ext}"),
             chrom=[i for i in range(1,23)],
             ext=[".l2.M", ".l2.M_5_50", ".l2.ldscore.gz", "log"]
         )
     output:
-        ws_path("{seqid}/seq.{seqid}_h2.log"),
+        ws_path("{seqid}/{seqid}_h2.log"),
     conda:
         "envs/ldsc.yml"
     resources:
         runtime= lambda wc,attempt: attempt * 60,
     params:
-        munge=ws_path("{seqid}/seq.{seqid}.munged.sumstats.gz"),
+        munge=ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
         ld=ws_path("ld/chr@"),
     shell:
         """
@@ -112,7 +112,7 @@ rule compute_ldscore:
 
 rule merge_h2_info:
     input:
-        expand(ws_path("{seqid}/seq.{seqid}_h2.log"), seqid=analytes.seqid),
+        expand(ws_path("{seqid}/{seqid}_h2.log"), seqid=analytes.seqid),
     output:
         ws_path("heritability_info.txt")
     shell:
