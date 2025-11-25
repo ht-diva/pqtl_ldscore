@@ -29,8 +29,7 @@ def get_inputs(wildcards):
         str(Path(config["path_bed"], config["bed_template"].format(chrom=chrom))),
         str(Path(config["path_bed"], config["bim_template"].format(chrom=chrom))),
         str(Path(config["path_bed"], config["fam_template"].format(chrom=chrom))),
-    ]
 
 def get_inputs_stem(wildcards):
     chrom = str(wildcards.chrom).strip(".")
-    return str(Path(config["path_bed"], config["bed_template"].format(chrom=chrom)).stem)
+    return str(Path(config["path_bed"], config["bed_template"].format(chrom=chrom))).replace(".bed", "")
