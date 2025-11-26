@@ -46,19 +46,6 @@ rule compute_ld:
         --ld-wind-kb {params.ld_window}
         """
 
-# rule make_list:
-#     input:
-#         config.get("path_seqids"),
-#     output:
-#         config.get("path_seqids"),
-#     params:
-#         sum_stats = config.get("path_sumstats"),
-#         suffix = config.get("suffix"),
-#     shell:
-#         """
-#     find {params.sumstats} -name {params.suffix} > {output}
-# """
-
 rule append_pvalue:
     input:
         sumstats_path,
@@ -69,7 +56,6 @@ rule append_pvalue:
         zcat {input} | \
         awk 'BEGIN{{OFS="\t"}} {{print $0, (NR==1 ? "P" : 10^(-$13))}}' > {output}
         """
-
 
 rule munge_sum_stat:
     input:
@@ -87,7 +73,6 @@ rule munge_sum_stat:
         --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {output[0]}
         """
 
-
 rule compute_ldscore:
     input:
         ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
@@ -101,10 +86,10 @@ rule compute_ldscore:
     conda:
         "envs/ldsc.yml"
     resources:
-        runtime= lambda wc,attempt: attempt * 60,
+        runtime=lambda wc, attempt: attempt * 60,
     params:
         munge=ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
-        ld=ws_path("ld/chr@"),
+        ld=ws_path("ld/chr")
     shell:
         """
         ldsc.py --h2 {input} --ref-ld-chr {params.ld} --w-ld-chr {params.ld} --out {output}
@@ -125,4 +110,3 @@ rule merge_h2_info:
             echo -e "$(basename $f)\\t$h2_line\\t$lambda_gc_line\\t$mean_chi2_line\\t$intercept_line"
         done > {output}
         """
-        
