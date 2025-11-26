@@ -108,7 +108,7 @@ rule compute_ldscore:
     shell:
         """
         ldsc.py --h2 {input} --ref-ld-chr {params.ld} --w-ld-chr {params.ld} --out {output}
-    """
+        """
 
 rule merge_h2_info:
     input:
