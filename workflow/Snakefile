@@ -8,6 +8,7 @@ configfile: "config/config.yaml"
 
 include: "rules/common.smk"
 
+# Master rule: all final outputs
 rule all:
     input:
         expand(ws_path("ld/chr{chrom}.l2.M"), chrom=range(1, 23)),
@@ -15,13 +16,12 @@ rule all:
         expand(ws_path("ld/chr{chrom}.l2.ldscore.gz"), chrom=range(1, 23)),
         expand(ws_path("ld/chr{chrom}.log"), chrom=range(1, 23)),
         expand(ws_path("{seqid}/{seqid}.gwaslab.P.tsv"), seqid=analytes.seqid),
-        expand([
-            ws_path("{seqid}/{seqid}.munged.log"),
-            ws_path("{seqid}/{seqid}.munged.sumstats.gz")
-        ], seqid=analytes.seqid),
+        expand(ws_path("{seqid}/{seqid}.munged.log"), seqid=analytes.seqid),
+        expand(ws_path("{seqid}/{seqid}.munged.sumstats.gz"), seqid=analytes.seqid),
         expand(ws_path("{seqid}/{seqid}_h2.log"), seqid=analytes.seqid),
         ws_path("heritability_info.txt")
 
+# Compute LD scores
 rule compute_ld:
     input:
         get_inputs
@@ -29,14 +29,14 @@ rule compute_ld:
         ws_path("ld/chr{chrom}.l2.M"),
         ws_path("ld/chr{chrom}.l2.M_5_50"),
         ws_path("ld/chr{chrom}.l2.ldscore.gz"),
-        ws_path("ld/chr{chrom}.log"),
+        ws_path("ld/chr{chrom}.log")
     params:
         bfile=get_inputs_stem,
         ld_window=config["ldsc_dict"]["window"]
     conda:
         "envs/ldsc.yml"
     resources:
-        runtime=lambda wc, attempt: attempt * 60,
+        runtime=lambda wc, attempt: attempt * 60
     shell:
         """
         ldsc.py \
@@ -46,10 +46,10 @@ rule compute_ld:
         --ld-wind-kb {params.ld_window}
         """
 
-
+# Append p-values to GWAS summary stats
 rule append_pvalue:
     input:
-        sumstats_path,
+        sumstats_path
     output:
         ws_path("{seqid}/{seqid}.gwaslab.P.tsv")
     shell:
@@ -58,47 +58,49 @@ rule append_pvalue:
         awk 'BEGIN{{OFS="\t"}} {{print $0, (NR==1 ? "P" : 10^(-$13))}}' > {output}
         """
 
+# Munge summary statistics
 rule munge_sum_stat:
     input:
-        ws_path("{seqid}/{seqid}.gwaslab.P.tsv"),
+        ws_path("{seqid}/{seqid}.gwaslab.P.tsv")
     output:
         ws_path("{seqid}/{seqid}.munged.log"),
-        ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
+        ws_path("{seqid}/{seqid}.munged.sumstats.gz")
     conda:
         "envs/ldsc.yml"
     resources:
-        runtime=lambda wc, attempt: attempt * 60,
+        runtime=lambda wc, attempt: attempt * 60
     shell:
         """
         munge_sumstats.py --sumstats {input} \
         --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {output[0]}
         """
 
+# Compute heritability using LD scores
 rule compute_ldscore:
     input:
         ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
-        expand(
-            ws_path("ld/chr{chrom}.{ext}"),
-            chrom=[i for i in range(1,23)],
-            ext=[".l2.M", ".l2.M_5_50", ".l2.ldscore.gz", "log"]
-        )
+        expand(ws_path("ld/chr{chrom}.l2.M"), chrom=range(1, 23)),
+        expand(ws_path("ld/chr{chrom}.l2.M_5_50"), chrom=range(1, 23)),
+        expand(ws_path("ld/chr{chrom}.l2.ldscore.gz"), chrom=range(1, 23)),
+        expand(ws_path("ld/chr{chrom}.log"), chrom=range(1, 23))
     output:
-        ws_path("{seqid}/{seqid}_h2.log"),
+        ws_path("{seqid}/{seqid}_h2.log")
     conda:
         "envs/ldsc.yml"
     resources:
-        runtime=lambda wc, attempt: attempt * 60,
+        runtime=lambda wc, attempt: attempt * 60
     params:
         munge=ws_path("{seqid}/{seqid}.munged.sumstats.gz"),
         ld=ws_path("ld/chr")
     shell:
         """
-        ldsc.py --h2 {input} --ref-ld-chr {params.ld} --w-ld-chr {params.ld} --out {output}
+        ldsc.py --h2 {params.munge} --ref-ld-chr {params.ld} --w-ld-chr {params.ld} --out {output}
         """
 
+# Merge heritability info into one file
 rule merge_h2_info:
     input:
-        expand(ws_path("{seqid}/{seqid}_h2.log"), seqid=analytes.seqid),
+        expand(ws_path("{seqid}/{seqid}_h2.log"), seqid=analytes.seqid)
     output:
         ws_path("heritability_info.txt")
     shell:
