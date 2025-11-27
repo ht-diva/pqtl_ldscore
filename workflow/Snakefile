@@ -40,11 +40,12 @@ rule compute_ld:
     shell:
         """
         ldsc.py \
-        --out {wildcards.chrom} \
+        --out ld/chr{wildcards.chrom} \
         --bfile {params.bfile} \
         --l2 \
         --ld-wind-kb {params.ld_window}
         """
+
 
 rule append_pvalue:
     input:
