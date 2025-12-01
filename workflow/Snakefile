@@ -72,7 +72,7 @@ rule munge_sum_stat:
     shell:
         """
         munge_sumstats.py --sumstats {input} \
-        --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {output[0]}
+        --N-col N --a1 EA --a2 NEA --frq EAF --p P --snp SNPID --out {seqid}/{seqid}.munged
         """
 
 # Compute heritability using LD scores
