@@ -40,7 +40,7 @@ rule compute_ld:
     shell:
         """
         ldsc.py \
-        --out ld/chr{wildcards.chrom} \
+        --out results/ld/chr{wildcards.chrom} \
         --bfile {params.bfile} \
         --l2 \
         --ld-wind-kb {params.ld_window}
